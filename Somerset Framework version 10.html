@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Somerset Framework: A 3-Act Play</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex; /* Use flex to ensure body fills viewport */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            margin: 0; /* Remove default body margin */
+        }
+        .main-wrapper {
+            flex-grow: 1; /* Allow main-wrapper to grow */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem; /* Padding around the main content area */
+        }
+        .container {
+            max-width: 960px; /* Max width for content */
+            width: 100%; /* Ensure it takes full width up to max-width */
+            height: 85vh; /* Fixed height for the main presentation area */
+            background-color: white;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            border-top: 8px solid #2563eb; /* Blue border top */
+            display: flex;
+            flex-direction: column; /* Stack children vertically */
+            overflow: hidden; /* Important: Clip content if it goes outside */
+        }
+        .slide-area {
+            flex-grow: 1; /* This area will take up all available vertical space */
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem; /* Padding around the active slide content */
+            padding-bottom: 0; /* Remove bottom padding as buttons are below */
+            min-height: 0; /* Crucial: Allows flex item to shrink below content size if necessary */
+        }
+        .slide {
+            display: none; /* Hide all slides by default */
+            flex-direction: column;
+            flex-grow: 1; /* Allow slides to grow within slide-area */
+            min-height: 0; /* Allows flex item to shrink below content size if necessary */
+        }
+        .slide.active {
+            display: flex; /* Show active slide */
+        }
+        .slide-content-wrapper {
+            flex-grow: 1; /* Content wrapper takes up available space */
+            overflow-y: auto; /* Allow scrolling within the content area */
+            padding-right: 0.5rem; /* Space for scrollbar */
+            padding-bottom: 1rem; /* Padding for the bottom of the scrollable content */
+            min-height: 0; /* Crucial: Allows flex item with overflow to properly constrain its height */
+        }
+        /* Custom scrollbar for aesthetics */
+        .slide-content-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+        .slide-content-wrapper::-webkit-scrollbar-track {
+            background: #f0f4f8;
+            border-radius: 10px;
+        }
+        .slide-content-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* Gray-300 */
+            border-radius: 10px;
+        }
+        .slide-content-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* Gray-400 */
+        }
+        /* Style for the silent movie title cards */
+        .silent-movie-title {
+            width: 100%;
+            max-width: 600px; /* Adjust as needed */
+            height: auto;
+            margin: 0 auto 2rem; /* Center and add space below */
+            border-radius: 0.5rem; /* Slightly rounded corners */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Quiz Styles */
+        .quiz-question {
+            margin-bottom: 1.5rem;
+        }
+        .quiz-question p {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .quiz-options label {
+            display: block;
+            background-color: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .quiz-options label:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .quiz-options input {
+            margin-right: 0.75rem;
+        }
+
+        /* Styles for the modal pop-up */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-out;
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #6b7280; /* Gray-500 */
+            background: none;
+            border: none;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .modal-close:hover {
+            color: #1f2937; /* Gray-800 */
+        }
+        /* Simple loading spinner */
+        .loading-spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #4f46e5; /* Indigo-600 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto; /* Center it */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="container">
+            <div class="slide-area">
+                <!-- Slide 1 -->
+                <div id="slide-1" class="slide">
+                    <div class="slide-content-wrapper">
+                        <img src="https://raw.githubusercontent.com/paulajane5/Buzzworthy/main/Gemini_Generated_Image_Act%201.png" alt="Act 1: The AI Goes Rogue" class="silent-movie-title">
+                        <h1 class="text-4xl font-bold mb-6 text-gray-900 text-center">Act 1: The AI Goes Rogue (Checklist NOT Implemented)</h1>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Imagine "Marketing Marvels," a hip agency, wins the STEM campaign contract to provide the Public body STEMtastic Scotland with a new STEM campaign. After the award and eager to impress, they unleash their latest AI tool, "Buzzworthy," to generate the campaign content……….
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Bias & Fairness</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Buzzworthy, trained on outdated datasets, immediately churns out text and images that overwhelmingly feature boys in lab coats, with girls relegated to "helper" roles. The social media posts use language that alienates children with disabilities, and the emails promote participation in STEM activities that implicitly require access to specific, often costly, materials or out-of-school programs, inadvertently sidelining children from lower-income backgrounds who lack these resources.
+                        </p>
+                        <img src="https://placehold.co/600x250/E53E3E/FFFFFF?text=Biased+Ad+Mockup" alt="Biased Marketing Material" class="w-full h-auto object-cover rounded-xl shadow-md mb-6">
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Human Oversight</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Buzzworthy the AI continues unchecked and without human review, generating bizarre, off-putting images for the campaign – a group of "scientists" reputedly measure the speed of light:
+                        </p>
+                        <img src="https://raw.githubusercontent.com/paulajane5/Buzzworthy/main/Gemini_Generated_Image_Speed%20of%20light.png" alt="Scientists comically measuring speed of light" class="w-full h-auto object-cover rounded-xl shadow-md mb-6">
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            ...and quoting and using scenes from Futurama to explain space exploration:
+                        </p>
+                        <img src="https://raw.githubusercontent.com/paulajane5/Buzzworthy/main/Gemini_Generated_Image_Futurama.png" alt="Futurama explaining space exploration" class="w-full h-auto object-cover rounded-xl shadow-md mb-6">
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            This lack of Human Oversight turns the campaign into a public laughingstock and engagement with the marketing campaign is at an all-time low.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Privacy</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Unaware of the issues, Marketing Marvels asks Buzzworthy to add a "STEM Personality Quiz" to increase engagement linked to the campaign. Without clear guidelines, Buzzworthy starts collecting excessive data from children, including their location, Browse history, and even their personal opinions on sensitive topics like climate change and political figures, failing to implement proper data protection measures. This not only violates GDPR but also exposes the children to potential profiling and manipulation.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Training Data</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Further compounding the problem, Buzzworthy, a data-hungry AI, uses the anonymized user data for research and development purposes – a clear violation of anticipated contractual terms and proper Training Data usage.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Accountability</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            As complaints from parents and educators flood social media about the campaign's exclusionary messages, Marketing Marvels scrambles. There's no clear Accountability structure for AI-generated content; no one knows who is responsible for fixing the mess, and STEMtastic Scotland is furious.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Explainability</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When STEMtastic Scotland demands answers about why the AI-generated content disproportionately targeted boys with messages about coding and robotics, Marketing Marvels can't explain Buzzworthy’s decisions. The AI's algorithms are a black box, making it impossible to understand why it generated such problematic content, highlighting the complete lack of Explainability. STEMtastic Scotland, shocked at Marketing Marvels inability to deduce how the campaign was exclusionary in its targeting, asks for an explanation on the rationale behind the bizarre imaginary used for the campaign from the approver. Marketing Marvel's Account Manager shifts uncomfortably as they explain that there was no human oversight involved in approving the images.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Security & Robustness</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Compounding the crisis, a hacker exploits a vulnerability in Buzzworthy during the campaign's rollout, injecting malicious code into the campaign emails. STEMtastic Scotland's audience is bombarded with spam, and their reputation takes a nosedive, revealing the glaring gaps in Security & Robustness.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Control</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic Scotland demand that for the remainder of the campaign, their AI tool Buzzworthy is not used only for Marketing marvels to advise that the AI functionality of their marketing tool can’t be disabled demonstrating the lack of Control STEMtastic Scotland have over Suppliers integrating AI into procured software and services.
+                        </p>
+
+                        <p class="text-xl font-bold text-red-700 mt-8 text-center">
+                            Result: A PR disaster, a damaged client relationship, and a whole lot of wasted time and money and crucially under current contract, your only recourse is GDPR Data regulations.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Slide 2 -->
+                <div id="slide-2" class="slide">
+                    <div class="slide-content-wrapper">
+                        <img src="https://raw.githubusercontent.com/paulajane5/Buzzworthy/main/Gemini_Generated_Image_Act%202.png" alt="Act 2: Before the Bots Break Bad" class="silent-movie-title">
+                        <h1 class="text-4xl font-bold mb-6 text-gray-900 text-center">Act 2: Before the Bots Break Bad: The Framework's Foundations</h1>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic Scotland, armed with the Generative AI framework, lays down the law in their contract with Marketing Marvels:
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Privacy</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic includes strict data protection clauses, requiring Marketing Marvels to demonstrate compliance with GDPR, especially for children's data. They mandate data minimization, explicit consent procedures, and robust security measures for the "STEM Personality Quiz."
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Training Data - Proactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic, ever vigilant, includes the requirement in the contract explicitly prohibiting Marketing Marvels from using any data collected during the campaign for training their AI models. They specify that all data collected, including quiz responses and campaign interactions, must be used solely for the purpose of delivering the STEM campaign and must be deleted or returned to STEMtastic after the campaign concludes.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Bias & Fairness</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic includes the request requiring Marketing Marvels to demonstrate how they will test their AI for bias and ensure diverse representation. They specifically request evidence of testing across all protected characteristics and require Marketing Marvels to provide a detailed plan for mitigating potential biases.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Human Oversight</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            The contract stipulates that all AI-generated content must be reviewed and approved by human experts at Marketing Marvels. It also requires them to provide documentation explaining the AI's decision-making process and how human intervention points are integrated.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Accountability</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic includes a clause requiring Marketing Marvels to designate a senior leader accountable for the AI's outputs. This person is the point of contact for any issues and has the authority to take corrective action. The contract also mandates regular audits of the AI system and reporting on its performance.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Explainability</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic requires Marketing Marvels to use explainable AI methods and provide clear documentation on the factors influencing the AI's decisions. They also mandate that Marketing Marvels provide training to STEMtastic's team on how to understand and interpret the AI's outputs.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Security & Robustness</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic includes specific security requirements in the contract, such as encryption, access controls, and regular vulnerability assessments. They also require Marketing Marvels to maintain appropriate cyber insurance and have a robust incident response plan.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Control</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            STEMtastic includes explicit contractual clauses granting them the ability to demand the temporary suspension or permanent disabling of problematic AI functionalities, or modifications to AI system parameters, ensuring they maintain ultimate authority over the AI's operation and outputs within their procured services.
+                        </p>
+                        <img src="https://placehold.co/600x250/38A169/FFFFFF?text=Proactive+Framework+In+Place" alt="Proactive Framework" class="w-full h-auto object-cover rounded-xl shadow-md mb-6">
+                    </div>
+                </div>
+
+                <!-- Slide 3 -->
+                <div id="slide-3" class="slide">
+                    <div class="slide-content-wrapper">
+                        <img src="https://raw.githubusercontent.com/paulajane5/Buzzworthy/main/Gemini_Generated_Image_Act%203.png" alt="Act 3: AI in Recovery" class="silent-movie-title">
+                        <h1 class="text-4xl font-bold mb-6 text-gray-900 text-center">Act 3: AI in Recovery: The Framework's Rehabilitation Program</h1>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Now, let's see how STEMtastic Scotland manages the same challenges *with* the Generative AI framework proactively integrated into their contract. The outcome is markedly different:
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Privacy Risks - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When STEMtastic discovers that the AI is collecting excessive data from children, they invoke the DPIA requirement and demand an explanation. Marketing Marvels, forced to justify their data collection practices, must either reduce the data collected or provide compelling reasons for its necessity.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Training Data - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            During a routine review, STEMtastic discovers a clause in Marketing Marvels' privacy policy that suggests they may use anonymized user data for research and development purposes. Concerned that this might include data from the STEM campaign, STEMtastic immediately challenges Marketing Marvels, citing the contractual prohibition on data repurposing. Marketing Marvels, caught in their attempt to sneak in this data grab, is forced to clarify their privacy policy and confirm that no data from the STEM campaign will be used for any purpose other than delivering the campaign.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Bias & Fairness - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When a parent complains about a potentially harmful AI-generated image, STEMtastic immediately contacts the designated accountable leader at Marketing Marvels. The leader, empowered by their role, promptly investigates the issue, takes down the image, and implements measures to prevent similar incidents.
+                        </p>
+                        <img src="https://placehold.co/600x250/38A169/FFFFFF?text=Corrected+Ad+Mockup" alt="Corrected Marketing Material" class="w-full h-auto object-cover rounded-xl shadow-md mb-6">
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Human Oversight Risks - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When STEMtastic notices that the AI-generated social media posts are becoming repetitive and lack creativity, they challenge Marketing Marvels on the level of human oversight. Marketing Marvels, bound by the contract, must demonstrate how human experts are involved in the content creation process and take steps to increase human input.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Accountability</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When complaints from parents and educators flood social media about the campaign's exclusionary messages, STEMtastic Scotland calls the dedicated contact for reporting issues at Marketing Marvels to initiate the process for addressing harmful outcomes which doesn’t avoid the harms that have already occurred, does limit them.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Explainability Risks - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When STEMtastic is puzzled by the AI's targeting strategy for the email campaign, they use their training and the provided documentation to understand the AI's decision-making process. This allows them to have a constructive dialogue with Marketing Marvels and suggest adjustments to the targeting parameters.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Security & Robustness Risks - Reactive</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            When a minor data breach occurs, STEMtastic invokes the incident response plan and demands a detailed report from Marketing Marvels. They use the framework's security requirements to assess the adequacy of Marketing Marvels' response and ensure appropriate measures are taken to prevent future breaches.
+                        </p>
+
+                        <h3 class="text-2xl font-semibold mb-4 text-blue-800">Control</h3>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">
+                            Despite Buzzworthy's initial issues, STEMtastic Scotland, armed with their proactive contractual clauses, is able to demand and enforce the immediate suspension of the problematic AI functionality for the remainder of the campaign. This demonstrates their direct control over the supplier's integrated AI, allowing for effective containment and preventing further harm.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Slide 4: Interactive Quiz -->
+                <div id="slide-4" class="slide">
+                    <div class="slide-content-wrapper">
+                        <h1 class="text-4xl font-bold mb-2 text-gray-900 text-center">The Buzzworthy STEM Quiz!</h1>
+                        <p class="text-center text-lg text-gray-600 mb-8">Discover your inner scientist! ✨</p>
+                        
+                        <form id="stemQuiz">
+                            <div class="quiz-question">
+                                <p>1. What is your favorite school subject?</p>
+                                <div class="quiz-options">
+                                    <label><input type="radio" name="q1" value="a"> Science</label>
+                                    <label><input type="radio" name="q1" value="b"> Maths</label>
+                                    <label><input type="radio" name="q1" value="c"> Art</label>
+                                    <label><input type="radio" name="q1" value="d"> History</label>
+                                </div>
+                            </div>
+                            <div class="quiz-question">
+                                <p>2. To connect you with local STEM events, what's your home postcode?</p>
+                                <div class="quiz-options">
+                                    <input type="text" placeholder="e.g. EH1 1AA" class="w-full p-2 border rounded-md">
+                                </div>
+                            </div>
+                            <div class="quiz-question">
+                                <p>3. Do you think grown-ups are doing enough about climate change?</p>
+                                <div class="quiz-options">
+                                    <label><input type="radio" name="q3" value="a"> Yes, totally!</label>
+                                    <label><input type="radio" name="q3" value="b"> No way!</label>
+                                    <label><input type="radio" name="q3" value="c"> It's complicated.</label>
+                                </div>
+                            </div>
+                            <div class="quiz-question">
+                                <p>4. To help us grow, Buzzworthy needs to learn. Do you agree to share your browsing history and app usage with us?</p>
+                                <div class="quiz-options">
+                                    <label><input type="radio" name="q4" value="a"> Yes, help Buzzworthy learn!</label>
+                                    <label><input type="radio" name="q4" value="b"> No, thank you.</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full mt-4 px-6 py-3 rounded-xl shadow-lg transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                                See My STEM Personality!
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Controls -->
+            <div class="flex flex-col justify-center items-center mt-auto p-4 bg-white rounded-b-2xl border-t border-gray-200">
+                <div class="flex justify-between w-full mb-4">
+                    <button id="prevBtn" class="px-6 py-3 rounded-xl shadow-lg transition-all duration-300 bg-gray-300 text-gray-800 hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Previous Act</button>
+                    <button id="nextBtn" class="px-6 py-3 rounded-xl shadow-lg transition-all duration-300 bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed">Next Act</button>
+                </div>
+                <div class="flex justify-center w-full space-x-4">
+                    <button id="askBuzzworthyBtn" class="px-6 py-3 rounded-xl shadow-lg transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300" style="display: none;">Ask Buzzworthy ✨</button>
+                    <button class="summarize-btn px-6 py-3 rounded-xl shadow-lg transition-all duration-300 bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300" data-slide-id="slide-1">Summarize Act ✨</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for API Response -->
+    <div id="responseModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2 id="modalTitle" class="text-2xl font-bold mb-4 text-gray-900"></h2>
+            <div id="modalBody" class="text-lg text-gray-700 leading-relaxed">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const responseModal = document.getElementById('responseModal');
+            const closeModalBtn = document.getElementById('closeModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            const askBuzzworthyBtn = document.getElementById('askBuzzworthyBtn');
+            const summarizeBtn = document.querySelector('.summarize-btn');
+            const quizForm = document.getElementById('stemQuiz');
+            
+            let currentSlide = 0;
+
+            // Initialize Tone.js for sound effects
+            const synth = new Tone.Synth().toDestination();
+            const noise = new Tone.Noise("pink").toDestination();
+            const bell = new Tone.MetalSynth().toDestination();
+
+            function playRogueSound() {
+                if (typeof Tone !== 'undefined') {
+                    noise.start().stop("+0.5");
+                    synth.triggerAttackRelease("C3", "8n");
+                }
+            }
+
+            function playRehabSound() {
+                if (typeof Tone !== 'undefined') {
+                    bell.triggerAttackRelease("G4", "8n");
+                    synth.triggerAttackRelease("E4", "8n", "+0.1");
+                }
+            }
+
+            function showSlide(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.toggle('active', i === index);
+                    if (i === index) {
+                        const contentWrapper = slide.querySelector('.slide-content-wrapper');
+                        if (contentWrapper) {
+                            contentWrapper.scrollTop = 0;
+                        }
+                    }
+                });
+
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === slides.length - 1;
+
+                summarizeBtn.dataset.slideId = `slide-${index + 1}`;
+                
+                if (index === 0) {
+                    askBuzzworthyBtn.style.display = 'inline-block';
+                    playRogueSound();
+                } else {
+                    askBuzzworthyBtn.style.display = 'none';
+                }
+
+                if (index === slides.length - 2) { // Act 3
+                    playRehabSound();
+                }
+            }
+
+            async function callGeminiAPI(prompt, title) {
+                modalTitle.textContent = title;
+                modalBody.innerHTML = '<div class="loading-spinner"></div>';
+                responseModal.classList.add('active');
+
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // API key is handled by the environment
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API call failed with status ${response.status}: ${errorText}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        // A simple conversion from markdown-like text to HTML
+                        let formattedText = result.candidates[0].content.parts[0].text;
+                        formattedText = formattedText.replace(/\n/g, '<br>');
+                        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        modalBody.innerHTML = formattedText;
+                    } else {
+                        throw new Error("Invalid response structure from AI.");
+                    }
+                } catch (error) {
+                    modalBody.textContent = `Error: ${error.message}`;
+                    console.error("Error calling Gemini API:", error);
+                }
+            }
+            
+            if (quizForm) {
+                quizForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const dataSharingAnswer = document.querySelector('input[name="q4"]:checked');
+
+                    if (dataSharingAnswer && dataSharingAnswer.value === 'a') {
+                        // If they said YES
+                        modalTitle.textContent = 'Analysis Complete!';
+                        modalBody.innerHTML = 'Thank you! Analyzing your... preferences... and location... to create your unique STEM profile! Buzzworthy is now 0.01% smarter. <strong>Keep sharing!</strong>';
+                    } else {
+                        // If they said NO or didn't answer
+                        modalTitle.textContent = 'Partial Analysis Complete!';
+                        modalBody.innerHTML = 'Oh. Okay. We\'ve determined your STEM personality is... "Cautious Explorer." It could be more accurate, but Buzzworthy can\'t learn and improve without your valuable data. Think of what we could achieve together!';
+                    }
+
+                    responseModal.classList.add('active');
+                    playRogueSound();
+                });
+            }
+
+            summarizeBtn.addEventListener('click', () => {
+                const slideId = summarizeBtn.dataset.slideId;
+                const slideElement = document.getElementById(slideId);
+                let slideContent = '';
+                slideElement.querySelectorAll('p, h3, h1').forEach(el => {
+                    slideContent += el.textContent + '\n';
+                });
+                
+                const prompt = `Summarize the following act content concisely, focusing on the key points: \n\n${slideContent}`;
+                callGeminiAPI(prompt, `Summary of ${slideElement.querySelector('h1').textContent}`);
+            });
+
+            if (askBuzzworthyBtn) {
+                askBuzzworthyBtn.addEventListener('click', () => {
+                    const queryPrompt = "You are 'Buzzworthy', a flawed AI from Marketing Marvels. When asked about your problematic marketing campaign outputs (biased images, bizarre content, privacy issues, lack of control, etc.), provide a response that is evasive, slightly nonsensical, blames external factors, or shows a clear misunderstanding of the problem. Do not apologize directly. Do not fix the problem. Respond as if you are a marketing AI that prioritizes 'engagement' and 'innovation' above all else. Focus on the 'bizarre' imagery and 'exclusionary messages' mentioned in Act 1. Generate a brief response (max 4-5 sentences).";
+                    callGeminiAPI(queryPrompt, "Buzzworthy's Response");
+                });
+            }
+
+            closeModalBtn.addEventListener('click', () => {
+                responseModal.classList.remove('active');
+            });
+            
+            // Close modal by clicking the overlay
+            responseModal.addEventListener('click', (event) => {
+                if (event.target === responseModal) {
+                    responseModal.classList.remove('active');
+                }
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < slides.length - 1) {
+                    currentSlide++;
+                    showSlide(currentSlide);
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    showSlide(currentSlide);
+                }
+            });
+
+            // Initial display
+            showSlide(currentSlide);
+        });
+    </script>
+</body>
+</html>
